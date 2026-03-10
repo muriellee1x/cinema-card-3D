@@ -41,7 +41,7 @@ const SCENES = [
     bg:          './files/scene2/BG-scene2.webp',
     mask:        './files/scene2/card-mask-alpha.webp',
     splat:       './files/3D/sharp_scene2.sog',
-    camera:      null,
+    camera:      './camera-scene.json',
     focalOffset: 0,
     splatX:      0.15,
     splatY:      0.1,
