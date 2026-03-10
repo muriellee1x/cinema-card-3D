@@ -1,0 +1,245 @@
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #08080f;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── Scene background divs (two slots, crossfade during transition) ── */
+.scene-bg {
+  position: fixed;
+  inset: 0;
+  background-size: 100% auto;
+  background-position: center top;
+  background-repeat: no-repeat;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#app {
+  --card-w: min(100vw, calc(86vh * 3 / 4));
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Perspective so children 3D transforms have depth */
+  perspective: 900px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Card wrapper: receives the CSS 3D tilt transform ── */
+#card-wrapper {
+  width: var(--card-w);
+  aspect-ratio: 3 / 4;
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transform: rotateX(0deg) rotateY(0deg);
+  --card-w: min(100vw, calc(86vh * 3 / 4));
+  margin-top: -7.5vh;
+  flex-shrink: 0;
+}
+
+/* ── Layer 0: Gaussian Splat canvas; transition used for fade-in after load ── */
+#card {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(0px);
+  transition: opacity 0.45s ease;
+}
+
+#card canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+  -webkit-mask-image: url('./files/scene1/card-mask-alpha.webp');
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: url('./files/scene1/card-mask-alpha.webp');
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+}
+
+/* ── Layer groups: transparent passthrough containers for 3D ── */
+.scene-layers {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+/* ── Layers: overlay images at increasing Z depths ── */
+.card-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  display: block;
+}
+
+/* Layer Z transforms are applied dynamically per-scene via JS inline styles */
+
+/* ── Halo: red glow circle behind the 3D scene ── */
+#halo {
+  position: absolute;
+  width: calc(var(--card-w)*0.8);
+  height: calc(var(--card-w)*0.8);
+  border-radius: 50%;
+  background: rgba(127, 0, 0, 0.75);
+  filter: blur(80px);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translateZ(-1px);
+  pointer-events: none;
+}
+
+/* ── Scene selector buttons ── */
+#scene-buttons {
+  position: fixed;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+}
+
+.scene-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn-layers {
+  position: relative;
+  width: calc(var(--card-w) * 0.2);
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.btn-icon,
+.btn-overlay {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  object-fit: cover;
+}
+
+.btn-icon {
+  width: 60%;
+  height: 60%;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.btn-overlay {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: screen;
+}
+
+.btn-label {
+  font-size: 12px;
+  font-family: 'PingFang SC', 'PingFang-SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.scene-btn.active .btn-label {
+  color: rgba(255, 202, 95, 1);
+}
+
+/* ── Loading screen ── */
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  background: #08080f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 200;
+  transition: opacity 0.6s ease;
+}
+#loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.loading-spinner {
+  width: 36px; height: 36px;
+  border: 2px solid rgba(255,255,255,0.12);
+  border-top-color: rgba(255,255,255,0.6);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-text {
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  animation: breathe 2.2s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 1; }
+}
+
+/* ── Gyroscope button ── */
+#gyro-btn {
+  position: fixed;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  right: 20px;
+  width: 44px; height: 44px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  padding: 0;
+  outline: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#gyro-btn:active { background: rgba(255,255,255,0.18); }
+#gyro-btn.active {
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.35);
+}
+#gyro-btn svg  { width: 20px; height: 20px; }
+#gyro-btn path { fill: rgba(255,255,255,0.7); }
+#gyro-btn.active path { fill: rgba(255,255,255,0.95); }
+
+/* ── Title ── */
+#title {
+  position: fixed;
+  top: calc(70px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60vw;
+  height: auto;
+  z-index: 100;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
