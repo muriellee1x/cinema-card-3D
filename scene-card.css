@@ -31,6 +31,7 @@ html, body {
   /* Perspective so children 3D transforms have depth */
   perspective: 900px;
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  position: relative;
 }
 
 /* ── Card wrapper: receives the CSS 3D tilt transform ── */
@@ -242,4 +243,76 @@ html, body {
   z-index: 100;
   pointer-events: none;
   mix-blend-mode: screen;
+  transition: opacity 0.35s ease;
+}
+
+/* ── Scene buttons transition ── */
+#scene-buttons {
+  transition: opacity 0.35s ease;
+}
+
+/* ── Fullscreen mode ── */
+body.scene-fullscreen #app {
+  padding-bottom: 0;
+}
+
+body.scene-fullscreen #card-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  margin-top: 0;
+}
+
+body.scene-fullscreen #scene-buttons,
+body.scene-fullscreen #title {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Fullscreen close button ── */
+#fs-close-btn {
+  position: fixed;
+  top: calc(20px + env(safe-area-inset-top, 0px));
+  left: 20px;
+  width: 44px; height: 44px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 150;
+  padding: 0;
+  outline: none;
+  opacity: 0;
+  transition: opacity 0.35s ease, background 0.15s ease;
+}
+
+body.scene-fullscreen #fs-close-btn {
+  display: flex;
+  opacity: 1;
+}
+
+#fs-close-btn:active { background: rgba(255,255,255,0.18); }
+#fs-close-btn svg  { width: 20px; height: 20px; }
+#fs-close-btn path { fill: rgba(255,255,255,0.85); }
+
+/* ── Cinematic flash overlay ── */
+#fs-flash {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 140;
+  transition: opacity 0.18s ease;
+}
+
+#fs-flash.active {
+  opacity: 0.55;
 }

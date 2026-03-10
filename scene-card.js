@@ -7,6 +7,8 @@ const card          = document.getElementById('card');
 const loadingScreen = document.getElementById('loading-screen');
 const loadingText   = document.getElementById('loading-text');
 const gyroBtn       = document.getElementById('gyro-btn');
+const fsCloseBtn    = document.getElementById('fs-close-btn');
+const fsFlash       = document.getElementById('fs-flash');
 
 // ── Scene configurations ──
 // layerZ: translateZ in px for each layer (scale compensation is auto-calculated)
@@ -86,6 +88,7 @@ let touchDA = 0, touchDB = 0;
 let gyroDA  = 0, gyroDB  = 0;
 let targetA = 0, targetB = 0;
 let dragging = false, lastX = 0, lastY = 0;
+let downX = 0, downY = 0;
 let gyroOn = false, gyroBeta0 = null, gyroGamma0 = null;
 let renderer, scene, camera;
 let loaded = false;
@@ -93,6 +96,12 @@ let currentSplatMesh = null;
 let currentSceneIdx  = 0;
 let switching        = false;
 let activeGroupId    = 'a';   // which layer group is currently active
+
+// ── Fullscreen state ──
+let isFullscreen = false;
+let _fsLock      = false;
+let _lastTapTime = 0;
+let _hadMultiTouch = false;
 
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
@@ -488,6 +497,50 @@ async function switchScene(idx) {
   switching = false;
 }
 
+// ── Fullscreen enter / exit ──
+function enterFullscreen() {
+  if (isFullscreen || _fsLock || !loaded || switching) return;
+  _fsLock = true;
+
+  // Phase 1: flash in (cinematic cut)
+  fsFlash.classList.add('active');
+
+  setTimeout(() => {
+    // Phase 2: expand card to full screen
+    isFullscreen = true;
+    document.body.classList.add('scene-fullscreen');
+
+    // Reset orbit to neutral so scene starts centered
+    touchDA = touchDB = 0;
+    alpha = beta = targetA = targetB = 0;
+
+    // Phase 3: flash out
+    fsFlash.classList.remove('active');
+
+    setTimeout(() => { _fsLock = false; }, 220);
+  }, 180);
+}
+
+function exitFullscreen() {
+  if (!isFullscreen || _fsLock) return;
+  _fsLock = true;
+
+  fsFlash.classList.add('active');
+
+  setTimeout(() => {
+    isFullscreen = false;
+    document.body.classList.remove('scene-fullscreen');
+
+    // Reset orbit so card returns to neutral tilt
+    touchDA = touchDB = 0;
+    alpha = beta = targetA = targetB = 0;
+
+    fsFlash.classList.remove('active');
+
+    setTimeout(() => { _fsLock = false; }, 220);
+  }, 180);
+}
+
 // ── Render loop ──
 function tick() {
   requestAnimationFrame(tick);
@@ -500,9 +553,13 @@ function tick() {
 
   applyOrbit(camera, alpha, beta);
 
-  const tiltY =  alpha * RAD_TO_DEG * CARD_TILT_AMP;
-  const tiltX = -beta  * RAD_TO_DEG * CARD_TILT_AMP;
-  cardWrapper.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+  if (!isFullscreen) {
+    const tiltY =  alpha * RAD_TO_DEG * CARD_TILT_AMP;
+    const tiltX = -beta  * RAD_TO_DEG * CARD_TILT_AMP;
+    cardWrapper.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+  } else {
+    cardWrapper.style.transform = '';
+  }
 
   renderer.render(scene, camera);
 }
@@ -513,6 +570,7 @@ requestAnimationFrame(tick);
 cardWrapper.addEventListener('pointerdown', e => {
   dragging = true;
   lastX = e.clientX; lastY = e.clientY;
+  downX = e.clientX; downY = e.clientY;
   e.preventDefault();
 }, { passive: false });
 
@@ -524,9 +582,50 @@ cardWrapper.addEventListener('pointermove', e => {
   e.preventDefault();
 }, { passive: false });
 
-const stopDrag = () => { dragging = false; };
-cardWrapper.addEventListener('pointerup',     stopDrag);
-cardWrapper.addEventListener('pointercancel', stopDrag);
+cardWrapper.addEventListener('pointerup', e => {
+  dragging = false;
+  const dx = e.clientX - downX;
+  const dy = e.clientY - downY;
+  // Only treat as tap if pointer barely moved (not a drag)
+  if (Math.sqrt(dx * dx + dy * dy) < 8 && e.pointerType !== 'touch') {
+    const now = Date.now();
+    if (now - _lastTapTime < 300) {
+      _lastTapTime = 0;
+      isFullscreen ? exitFullscreen() : enterFullscreen();
+    } else {
+      _lastTapTime = now;
+    }
+  }
+});
+
+cardWrapper.addEventListener('pointercancel', () => { dragging = false; });
+
+// ── Double-tap (touch) detection ──
+cardWrapper.addEventListener('touchstart', e => {
+  if (e.touches.length >= 2) _hadMultiTouch = true;
+}, { passive: true });
+
+cardWrapper.addEventListener('touchend', e => {
+  if (e.touches.length !== 0) return;
+  if (_hadMultiTouch) { _hadMultiTouch = false; _lastTapTime = 0; return; }
+  _hadMultiTouch = false;
+  if (_fsLock || switching) return;
+  const dx = (e.changedTouches[0]?.clientX ?? downX) - downX;
+  const dy = (e.changedTouches[0]?.clientY ?? downY) - downY;
+  if (Math.sqrt(dx * dx + dy * dy) >= 12) return; // was a drag, not a tap
+  const now = Date.now();
+  if (now - _lastTapTime < 300) {
+    e.preventDefault();
+    _lastTapTime = 0;
+    isFullscreen ? exitFullscreen() : enterFullscreen();
+  } else {
+    _lastTapTime = now;
+  }
+}, { passive: false });
+
+cardWrapper.addEventListener('touchcancel', () => {
+  _hadMultiTouch = false; _lastTapTime = 0;
+});
 
 // ── Gyroscope ──
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -572,6 +671,13 @@ new ResizeObserver(() => {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
 }).observe(card);
+
+// ── Fullscreen close button & ESC key ──
+fsCloseBtn.addEventListener('click', () => { exitFullscreen(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && isFullscreen) exitFullscreen();
+});
 
 // ── Scene button selection ──
 const sceneBtns = document.querySelectorAll('.scene-btn');
