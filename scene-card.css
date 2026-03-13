@@ -236,7 +236,7 @@ html, body {
 /* ── Title ── */
 #title {
   position: fixed;
-  bottom: 77.5vh;
+  bottom: 72vh;
   left: 50%;
   transform: translateX(-50%);
   width: 60vw;
