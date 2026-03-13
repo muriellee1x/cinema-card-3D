@@ -231,8 +231,7 @@ function applyOrbit(cam, a, b) {
 
     if (fsViewBase.target) {
       // 新格式：position + target（SfM 坐标系 → Three.js 场景坐标系）
-      // 转换公式：world = sfm × splatScale + splatOffset
-      // 使 scene-card.js 视角与节点完全一致（节点不缩放 splat，此处补偿 SPLAT_SCALE）
+      // 使用以 target 为轴心的轨道运动（camera 物理位移），产生真实3D视差
       const cfg = SCENES[currentSceneIdx];
       const ss = isFullscreen
         ? SPLAT_SCALE * (cfg.fsSplatScale ?? 1.0)
@@ -246,16 +245,33 @@ function applyOrbit(cam, a, b) {
       const wpx = px * ss + sox, wpy = py * ss + soy, wpz = pz * ss + soz;
       const wtx = tx * ss + sox, wty = ty * ss + soy, wtz = tz * ss + soz;
 
-      cam.position.set(wpx, wpy, wpz);
-      cam.lookAt(wtx, wty, wtz);
-      _orbitBaseQ.copy(cam.quaternion);
+      // 构建以 target 为圆心的轨道坐标系：
+      // bx/by/bz = 从 target 指向初始相机位置的单位向量（轨道 forward）
+      const dx = wpx - wtx, dy = wpy - wty, dz = wpz - wtz;
+      const r = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+      const bx = dx/r, by = dy/r, bz = dz/r;
 
-      // 叠加交互偏移（水平 yaw + 垂直 pitch，单位：弧度）
-      _orbitDeltaEuler.set(-b, -a, 0, 'YXZ');
-      _orbitDeltaQ.setFromEuler(_orbitDeltaEuler);
-      _orbitBaseQ.multiply(_orbitDeltaQ);
-      cam.quaternion.copy(_orbitBaseQ);
-      cam.position.set(wpx, wpy, wpz);
+      // right = normalize(world_up × forward)，world_up = [0,1,0]
+      // world_up × forward = [1*bz-0*by, 0*bx-0*bz, 0*by-1*bx] = [bz, 0, -bx]
+      let rLen = Math.sqrt(bz*bz + bx*bx);
+      let rx, ry, rz;
+      if (rLen < 0.001) {
+        // forward 接近竖直，改用 [0,0,1] 作为参考
+        rx = 1; ry = 0; rz = 0;
+      } else {
+        rx = bz/rLen; ry = 0; rz = -bx/rLen;
+      }
+      // up = forward × right
+      const ux = by*rz - bz*ry, uy = bz*rx - bx*rz, uz = bx*ry - by*rx;
+
+      // 轨道公式（与默认 pivot-orbit 完全一致）
+      const cosA = Math.cos(-a), sinA = Math.sin(-a);
+      const cosB = Math.cos(b),  sinB = Math.sin(b);
+      const ox = r * (bx*cosA*cosB + rx*sinA*cosB + ux*sinB);
+      const oy = r * (by*cosA*cosB + ry*sinA*cosB + uy*sinB);
+      const oz = r * (bz*cosA*cosB + rz*sinA*cosB + uz*sinB);
+      cam.position.set(wtx + ox, wty + oy, wtz + oz);
+      cam.lookAt(wtx, wty, wtz);
     } else {
       // 旧格式兼容：Euler XYZ（度），坐标不做缩放变换
       const [rx, ry, rz] = fsViewBase.rotation;

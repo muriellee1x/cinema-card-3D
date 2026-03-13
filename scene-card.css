@@ -32,6 +32,7 @@ html, body {
   perspective: 900px;
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   position: relative;
+  z-index: 2;
 }
 
 /* ── Card wrapper: receives the CSS 3D tilt transform ── */
@@ -235,15 +236,22 @@ html, body {
 /* ── Title ── */
 #title {
   position: fixed;
-  top: calc(36px + env(safe-area-inset-top, 0px));
+  bottom: 77.5vh;
   left: 50%;
   transform: translateX(-50%);
   width: 60vw;
   height: auto;
-  z-index: 100;
+  z-index: 1;
   pointer-events: none;
   mix-blend-mode: screen;
   transition: opacity 0.35s ease;
+}
+
+/* Tablet & Desktop */
+@media (min-width: 768px) {
+  #title {
+    bottom: 45vh;
+  }
 }
 
 /* ── Scene buttons transition ── */
