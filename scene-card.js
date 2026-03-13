@@ -491,6 +491,20 @@ async function preloadAllAssets() {
     );
     console.log(`[preload] 相机数据已加载: ${cfg.cameras?.length ?? 0} 个视角`);
   }));
+
+  // 预加载分享卡图片（转为 blob URL，展示时无需再发请求）
+  await Promise.all(CARD_IMAGES.map((url, i) =>
+    fetch(url)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`); return r.blob(); })
+      .then(blob => {
+        CARD_IMAGE_BLOBS[i] = URL.createObjectURL(blob);
+        console.log(`[preload] 分享卡图片已加载: ${url}`);
+      })
+      .catch(err => {
+        console.warn(`[preload] 分享卡图片加载失败: ${url}`, err);
+        CARD_IMAGE_BLOBS[i] = url;  // 降级：仍使用原始 URL
+      })
+  ));
 }
 
 // ── Load camera params ──
@@ -1348,9 +1362,11 @@ const CARD_IMAGES = [
   './files/card-scene1.webp',
   './files/card-scene2.webp',
 ];
+// blob URL 缓存（preloadAllAssets 完成后写入，避免展示时重复请求）
+const CARD_IMAGE_BLOBS = [];
 
 function showPhotoOverlay() {
-  photoCardImg.src = CARD_IMAGES[currentSceneIdx];
+  photoCardImg.src = CARD_IMAGE_BLOBS[currentSceneIdx] ?? CARD_IMAGES[currentSceneIdx];
   photoOverlay.classList.add('visible');
 }
 
@@ -1371,7 +1387,7 @@ photoOverlay.addEventListener('click', e => {
 
 photoSaveBtn.addEventListener('click', async e => {
   e.stopPropagation();
-  const url = CARD_IMAGES[currentSceneIdx];
+  const url = CARD_IMAGE_BLOBS[currentSceneIdx] ?? CARD_IMAGES[currentSceneIdx];
   const filename = `card-scene${currentSceneIdx + 1}.webp`;
   try {
     const response = await fetch(url);
