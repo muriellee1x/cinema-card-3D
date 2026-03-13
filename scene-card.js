@@ -16,6 +16,7 @@ const photoOverlay  = document.getElementById('photo-overlay');
 const photoCardImg  = document.getElementById('photo-card-img');
 const photoSaveBtn  = document.getElementById('photo-save-btn');
 const photoCloseBtn = document.getElementById('photo-close-btn');
+const saveToast     = document.getElementById('save-toast');
 const viewDotEls    = [
   document.getElementById('view-dot-0'),
   document.getElementById('view-dot-1'),
@@ -1374,6 +1375,16 @@ function hidePhotoOverlay() {
   photoOverlay.classList.remove('visible');
 }
 
+let _toastTimer = null;
+function showSaveToast() {
+  if (_toastTimer) clearTimeout(_toastTimer);
+  saveToast.classList.add('show');
+  _toastTimer = setTimeout(() => {
+    saveToast.classList.remove('show');
+    _toastTimer = null;
+  }, 2000);
+}
+
 photoCloseBtn.addEventListener('click', e => {
   e.stopPropagation();
   hidePhotoOverlay();
@@ -1395,12 +1406,14 @@ photoSaveBtn.addEventListener('click', async e => {
     const file = new File([blob], filename, { type: blob.type });
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: '分享卡' });
+      showSaveToast();
     } else {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = filename;
       a.click();
       URL.revokeObjectURL(a.href);
+      showSaveToast();
     }
   } catch (err) {
     if (err.name !== 'AbortError') {

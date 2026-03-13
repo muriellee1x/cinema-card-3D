@@ -535,3 +535,31 @@ body.scene-fullscreen #fs-3d-ui {
 
 #photo-close-btn svg  { width: 20px; height: 20px; }
 #photo-close-btn path { fill: rgba(255, 255, 255, 0.7); }
+
+/* ── Save toast notification ── */
+#save-toast {
+  position: fixed;
+  bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: rgba(30, 30, 40, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-family: 'PingFang SC', 'PingFang-SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.04em;
+  padding: 10px 20px;
+  border-radius: 24px;
+  white-space: nowrap;
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#save-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
