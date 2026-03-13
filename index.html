@@ -93,12 +93,55 @@
   <!-- Title -->
   <img id="title" src="./files/title.webp" alt="" draggable="false">
 
+    <!-- Fullscreen close button -->
+  <button id="fs-close-btn" aria-label="退出全屏">
+    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+  </button>
+
+  <!-- Cinematic flash overlay for fullscreen transition -->
+  <div id="fs-flash"></div>
+  
   <!-- Gyroscope toggle button -->
   <button id="gyro-btn" aria-label="陀螺仪">
     <svg viewBox="0 0 24 24">
       <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
     </svg>
   </button>
+
+  <!-- Fullscreen 3D UI: camera track + view angle dots + photo button -->
+  <div id="fs-3d-ui">
+    <!-- view-dot buttons temporarily hidden
+    <div id="fs-track-container">
+      <img id="fs-track-img" src="./files/track.webp" alt="" draggable="false">
+      <button class="view-dot" id="view-dot-0" data-view="0" aria-label="居中视角">
+        <img src="./files/view-selected.webp" alt="" draggable="false">
+      </button>
+      <button class="view-dot" id="view-dot-1" data-view="1" aria-label="左侧视角">
+        <img src="./files/view-unselected.webp" alt="" draggable="false">
+      </button>
+      <button class="view-dot" id="view-dot-2" data-view="2" aria-label="右侧视角">
+        <img src="./files/view-unselected.webp" alt="" draggable="false">
+      </button>
+    </div>
+    -->
+    <button id="fs-photo-btn" aria-label="拍照">
+      <img src="./files/camera-icon.webp" alt="" draggable="false">
+    </button>
+  </div>
+
+  <!-- Photo card overlay -->
+  <div id="photo-overlay">
+    <div id="photo-overlay-bg"></div>
+    <div id="photo-overlay-content">
+      <button id="photo-close-btn" aria-label="退出">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+      <img id="photo-card-img" src="" alt="" draggable="false">
+      <button id="photo-save-btn" aria-label="保存分享卡">
+        <img src="./files/save-btn.webp" alt="保存分享卡" draggable="false">
+      </button>
+    </div>
+  </div>
 
   <script type="module" src="./scene-card.js"></script>
 </body>
