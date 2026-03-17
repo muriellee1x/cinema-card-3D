@@ -5,147 +5,156 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Scene Card</title>
-  <link rel="stylesheet" href="./scene-card.css">
-
-  <!-- Import map: THREE.js + SparkJS share one instance -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three":             "https://esm.sh/three@0.178.0",
-      "three/":            "https://esm.sh/three@0.178.0/",
-      "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/0.1.10/spark.module.js"
-    }
-  }
-  </script>
+  <title>真人礼物展馆</title>
+  <link rel="stylesheet" href="./gallery.css">
 </head>
 <body>
 
-  <!-- Loading screen -->
-  <div id="loading-screen">
-    <div class="loading-spinner"></div>
-    <div id="loading-text">场景加载中…</div>
-  </div>
+  <!-- Root layout -->
+  <div id="gallery-root">
 
-  <!-- Scene background layers (crossfade during transitions) -->
-  <div id="bg-a" class="scene-bg"></div>
-  <div id="bg-b" class="scene-bg" style="opacity:0"></div>
+    <!-- Top bar: user sticker trigger -->
+    <div id="top-bar">
+      <button id="user-trigger" onclick="openUserMenu()" aria-label="切换用户">
+        <img src="./files/user1.webp" id="trigger-img" alt="" draggable="false">
+      </button>
+    </div>
 
-  <!-- Card -->
-  <div id="app">
-    <div id="card-wrapper">
+    <!-- Title section -->
+    <div id="title-section">
+      <img id="gallery-title-img" src="./files/title-gallery.webp" alt="真人礼物展馆" draggable="false">
+      <!-- <div class="sparkle-row">
+        <span class="sparkle small"></span>
+        <span class="sparkle-line" style="width:60px"></span>
+        <span class="sparkle"></span>
+        <span class="sparkle-line" style="width:60px"></span>
+        <span class="sparkle small"></span>
+      </div> -->
+    </div>
 
-      <!-- Halo: red glow behind 3D scene -->
-      <div id="halo"></div>
+    <!-- Scrollable cards area -->
+    <div id="cards-scroll">
 
-      <!-- Layer 0: Splat scene (masked) -->
-      <div id="card"></div>
-
-      <!-- Scene A layer group (active on load) -->
-      <div id="layers-a" class="scene-layers">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
+      <!-- Card 1: 爱人如养花（可点击，跳转场景页） -->
+      <div class="gallery-card" id="card-1" onclick="goToScene()">
+        <img class="card-image" id="card-1-img" src="./files/gallery-card1-user1.webp" alt="爱人如养花" draggable="false">
       </div>
 
-      <!-- Scene B layer group (used during transitions) -->
-      <div id="layers-b" class="scene-layers">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
-        <img class="card-layer" alt="" draggable="false" style="display:none">
+      <!-- Card 2: 春日心动（锁定中） -->
+      <div class="gallery-card locked" id="card-2" onclick="showUnlockToast()">
+        <img class="card-image" id="card-2-img" src="./files/gallery-card2-user1.webp" alt="春日心动" draggable="false">
       </div>
 
     </div>
 
-    <!-- Scene selector buttons -->
-    <div id="scene-buttons">
-      <div class="scene-btn active" data-idx="0">
-        <div class="btn-layers">
-          <img class="btn-icon" src="./files/icon1.webp" alt="" draggable="false">
-          <img class="btn-overlay" src="./files/selected.webp" alt="" draggable="false">
-        </div>
-        <span class="btn-label">浪漫满怀</span>
-      </div>
-      <div class="scene-btn" data-idx="1">
-        <div class="btn-layers">
-          <img class="btn-icon" src="./files/icon2.webp" alt="" draggable="false">
-          <img class="btn-overlay" src="./files/unselected.webp" alt="" draggable="false">
-        </div>
-        <span class="btn-label">一眼心动</span>
-      </div>
-    </div>
   </div>
 
-  <!-- Title -->
-  <img id="title" src="./files/title.webp" alt="" draggable="false">
-
-    <!-- Fullscreen close button -->
-  <button id="fs-close-btn" aria-label="退出全屏">
-    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-  </button>
-
-  <!-- Cinematic flash overlay for fullscreen transition -->
-  <div id="fs-flash"></div>
-  
-  <!-- Gyroscope toggle button -->
-  <button id="gyro-btn" aria-label="陀螺仪">
-    <svg viewBox="0 0 24 24">
-      <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+  <!-- Unlock toast -->
+  <div id="unlock-toast" class="hidden">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C9.24 2 7 4.24 7 7v2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V7c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v2H9V7c0-1.66 1.34-3 3-3zm0 9a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="rgba(255,255,255,0.7)"/>
     </svg>
-  </button>
-
-  <!-- Fullscreen 3D UI: camera track + view angle dots + photo button -->
-  <div id="fs-3d-ui">
-    <!-- view-dot buttons temporarily hidden
-    <div id="fs-track-container">
-      <img id="fs-track-img" src="./files/track.webp" alt="" draggable="false">
-      <button class="view-dot" id="view-dot-0" data-view="0" aria-label="居中视角">
-        <img src="./files/view-selected.webp" alt="" draggable="false">
-      </button>
-      <button class="view-dot" id="view-dot-1" data-view="1" aria-label="左侧视角">
-        <img src="./files/view-unselected.webp" alt="" draggable="false">
-      </button>
-      <button class="view-dot" id="view-dot-2" data-view="2" aria-label="右侧视角">
-        <img src="./files/view-unselected.webp" alt="" draggable="false">
-      </button>
-    </div>
-    -->
-    <button id="fs-photo-btn" aria-label="拍照">
-      <img src="./files/camera-icon.webp" alt="" draggable="false">
-    </button>
+    <span>礼物暂未解锁</span>
   </div>
 
-  <!-- Photo card overlay -->
-  <div id="photo-overlay">
-    <div id="photo-overlay-bg"></div>
-    <div id="photo-overlay-content">
-      <button id="photo-close-btn" aria-label="退出">
-        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-      </button>
-      <img id="photo-card-img" src="" alt="" draggable="false">
-      <button id="photo-save-btn" aria-label="保存分享卡">
-        <img src="./files/save-btn.webp" alt="保存分享卡" draggable="false">
-      </button>
+  <!-- User switch transition overlay -->
+  <div id="switch-overlay"></div>
+
+  <!-- Backdrop: tap outside to close menu -->
+  <div id="user-menu-backdrop" class="hidden" onclick="closeUserMenu()"></div>
+
+  <!-- User switcher menu -->
+  <div id="user-menu" class="hidden">
+    <div id="user-menu-list">
+      <div class="user-option active" data-user="1" onclick="selectUser(1)">
+        <svg class="user-option-check" viewBox="0 0 20 20" fill="none">
+          <rect x="1.5" y="1.5" width="17" height="17" rx="3" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+          <path d="M5 10.2l3.3 3.3 6.7-6.7" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="user-option-name">迅猛龙 特蕾莎</span>
+      </div>
+      <div class="user-option" data-user="2" onclick="selectUser(2)">
+        <svg class="user-option-check" viewBox="0 0 20 20" fill="none">
+          <rect x="1.5" y="1.5" width="17" height="17" rx="3" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        </svg>
+        <span class="user-option-name">皮皮皮皮朱</span>
+      </div>
     </div>
   </div>
 
-  <!-- Save toast notification -->
-  <div id="save-toast">图像已保存</div>
 
-  <script type="module" src="./scene-card.js"></script>
+  <script>
+    const USERS = [
+      { id: 1, name: '迅猛龙 特蕾莎', img: './files/user1.webp', cardImg: './files/gallery-card1-user1.webp', card2Img: './files/gallery-card2-user1.webp' },
+      { id: 2, name: '皮皮皮皮朱',   img: './files/user2.webp', cardImg: './files/gallery-card1-user2.webp', card2Img: './files/gallery-card2-user2.webp' }
+    ];
+    let activeUser = 1;
+
+    function openUserMenu() {
+      document.getElementById('user-menu').classList.remove('hidden');
+      document.getElementById('user-menu-backdrop').classList.remove('hidden');
+      renderMenu();
+    }
+
+    function closeUserMenu() {
+      document.getElementById('user-menu').classList.add('hidden');
+      document.getElementById('user-menu-backdrop').classList.add('hidden');
+    }
+
+    function selectUser(id) {
+      if (id === activeUser) { closeUserMenu(); return; }
+      closeUserMenu();
+      const overlay = document.getElementById('switch-overlay');
+      overlay.classList.remove('fade-out');
+      overlay.classList.add('fade-in');
+      overlay.addEventListener('animationend', () => {
+        activeUser = id;
+        const u = USERS.find(u => u.id === id);
+        document.getElementById('trigger-img').src = u.img;
+        document.getElementById('card-1-img').src = u.cardImg;
+        document.getElementById('card-2-img').src = u.card2Img;
+        renderMenu();
+        overlay.classList.remove('fade-in');
+        overlay.classList.add('fade-out');
+        overlay.addEventListener('animationend', () => {
+          overlay.classList.remove('fade-out');
+        }, { once: true });
+      }, { once: true });
+    }
+
+    function goToScene() {
+      window.location.href = './scene.html?user=' + activeUser;
+    }
+
+    let _toastTimer = null;
+    function showUnlockToast() {
+      const toast = document.getElementById('unlock-toast');
+      toast.classList.remove('hidden', 'toast-hide');
+      toast.classList.add('toast-show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => {
+        toast.classList.add('toast-hide');
+        toast.addEventListener('animationend', () => toast.classList.add('hidden'), { once: true });
+      }, 2000);
+    }
+
+    function renderMenu() {
+      document.querySelectorAll('.user-option').forEach(el => {
+        const uid = parseInt(el.dataset.user);
+        const isActive = uid === activeUser;
+        el.classList.toggle('active', isActive);
+        const svg = el.querySelector('.user-option-check');
+        if (isActive) {
+          svg.innerHTML = `
+            <rect x="1.5" y="1.5" width="17" height="17" rx="3" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+            <path d="M5 10.2l3.3 3.3 6.7-6.7" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+        } else {
+          svg.innerHTML = `
+            <rect x="1.5" y="1.5" width="17" height="17" rx="3" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>`;
+        }
+      });
+    }
+  </script>
+
 </body>
 </html>

@@ -30,19 +30,17 @@ const SCENES = [
   {
     bg:          './files/scene1/BG-scene1.webp',
     mask:        './files/scene1/card-mask-alpha.webp',
-    splat:       './files/3D/sharp_scene1.sog',
+    splat:       './files/3D/sharp_user1_scene1.sog',
     cameras: [
       './cameras/camera-scene1-a.json',
       './cameras/camera-scene1-b.json',
       './cameras/camera-scene1-c.json',
     ],
-    focalOffset:   0,
-    fsFocalOffset: 0,  // 全屏模式下额外叠加的焦距偏移（正值=长焦/放大，0=不变）
-    splatX:      0,
-    splatY:      0,
-    splatZ:      -1.5,   // 沿 Z 轴平移 splat（正值=靠近相机，负值=远离相机）
-    fsSplatZ:    0,    // 全屏模式下的 splat Z（独立调整）
-    fsSplatScale: 1.0, // 全屏模式下的 splat 额外缩放倍数（1.0=不变）
+    // ── 每个 user+scene 组合独立配置（user1_scene1, user2_scene1）──
+    splatConfig: {
+      user1: { focalOffset: -10, fsFocalOffset: 8, splatX: 0, splatY: -0.3, splatZ: -1, fsSplatZ: 0, fsSplatScale: 1.0 },
+      user2: { focalOffset: -10, fsFocalOffset: 6, splatX: 0.2, splatY: -0.5, splatZ: -1, fsSplatZ: 0, fsSplatScale: 1.0 },
+    },
     haloColor:   'rgba(127, 0, 0, 0.75)',
     // ── 所有 GLB 图层（替代旧 webp layers）──
     // 每个条目可单独设置 x/y/z/scale
@@ -81,19 +79,17 @@ const SCENES = [
   {
     bg:          './files/scene2/BG-scene2.webp',
     mask:        './files/scene2/card-mask-alpha.webp',
-    splat:       './files/3D/sharp_scene2.sog',
+    splat:       './files/3D/sharp_user1_scene2.sog',
     cameras: [
       './cameras/camera-scene2-a.json',
       './cameras/camera-scene2-b.json',
       './cameras/camera-scene2-c.json',
     ],
-    focalOffset:   0,
-    fsFocalOffset: 0, // 全屏模式下额外叠加的焦距偏移（正值=长焦/放大，0=不变）
-    splatX:      0,
-    splatY:      0,
-    splatZ:      -1.5,   // 沿 Z 轴平移 splat（正值=靠近相机，负值=远离相机）
-    fsSplatZ:    0,    // 全屏模式下的 splat Z（独立调整）
-    fsSplatScale: 1, // 全屏模式下的 splat 额外缩放倍数（>1 = 放大填满画面）
+    // ── 每个 user+scene 组合独立配置（user1_scene2, user2_scene2）──
+    splatConfig: {
+      user1: { focalOffset: -8, fsFocalOffset: 6, splatX: 0.1, splatY: 0, splatZ: -1.5, fsSplatZ: 0, fsSplatScale: 1 },
+      user2: { focalOffset: 0, fsFocalOffset: 10, splatX: 0.1, splatY: -0.1, splatZ: -1.5, fsSplatZ: 0, fsSplatScale: 1 },
+    },
     haloColor:   'rgba(210, 127, 164, 0.65)',
     // ── 所有 GLB 图层（替代旧 webp layers）──
     // 每个条目可单独设置 x/y/z/scale
@@ -124,11 +120,29 @@ const SCENES = [
   },
 ];
 
+// ── 根据 URL ?user=N 参数确定当前用户（默认 user1）──
+const ACTIVE_USER = (new URLSearchParams(window.location.search).get('user') === '2') ? '2' : '1';
+
+// 按用户动态设置 splat 路径 + BG 路径，并合并该 user 的 splatConfig
+const USER_KEY = `user${ACTIVE_USER}`;
+SCENES.forEach((cfg, i) => {
+  cfg.splat = `./files/3D/sharp_user${ACTIVE_USER}_scene${i + 1}.sog`;
+  cfg.bg    = `./files/scene${i + 1}/BG-scene${i + 1}-user${ACTIVE_USER}.webp`;
+  const overrides = cfg.splatConfig?.[USER_KEY];
+  if (overrides) Object.assign(cfg, overrides);
+});
+console.log(`[user] user${ACTIVE_USER} → splat & bg & splatConfig 已设置`);
+
 // ── Camera constants ──
 const GEN_FOCAL_MM = 30;
 const PERSPECTIVE  = 900;   // must match CSS perspective value on #app
 const ORBIT_DIST   = 4;
-const SPLAT_SCALE  = 2;
+const SPLAT_SCALE  = 4;
+
+// ── 每个 Gaussian 点的 3D 椭球尺寸倍率 ──
+// 仅改变每个点自身的大小，不改变点之间的位置间距（不同于 SPLAT_SCALE）
+// 1.0 = 原始大小；>1.0 = 点更大更融合；<1.0 = 点更小颗粒感更强
+const SPLAT_POINT_SCALE = 1.5;
 
 // ── Interaction constants ──
 const MAX_ORBIT_H   = 10 * Math.PI / 180;   // ±10° horizontal
@@ -624,6 +638,21 @@ function applySceneAssets(cfg, groupId = null) {
   });
 }
 
+// ── 将 SplatMesh 每个点的 3D 椭球尺寸乘以 multiplier ──
+// 原理：直接修改 PackedSplats 中每个 Gaussian 的 scales（xyz 轴长），
+// 不移动点的位置，仅改变各点自身的渲染覆盖半径。
+// 对应 ComfyUI GaussianViewer 中的 "Gaussian Scale Multiplier"。
+function applySplatPointScale(splatMesh, multiplier) {
+  if (multiplier === 1.0) return;
+  const tmpScales = new THREE.Vector3();
+  splatMesh.forEachSplat((index, center, scales, quaternion, opacity, color) => {
+    tmpScales.set(scales.x * multiplier, scales.y * multiplier, scales.z * multiplier);
+    splatMesh.packedSplats.setSplat(index, center, tmpScales, quaternion, opacity, color);
+  });
+  splatMesh.packedSplats.needsUpdate = true;
+  console.log(`[splat] applySplatPointScale: ${multiplier}x, numSplats=${splatMesh.numSplats}`);
+}
+
 // ── Init (scene 0) ──
 async function init() {
   // 预加载所有 files/3D 资源（两个场景全部完成后才继续）
@@ -683,7 +712,7 @@ async function init() {
   // SparkRenderer
   const spark = new Spark.SparkRenderer({
     renderer,
-    focalAdjustment: 1.0,
+    focalAdjustment: 1,
     minAlpha: 5 / 255,
   });
   scene.add(spark);
@@ -702,6 +731,7 @@ async function init() {
   await splatMesh.initialized;
   console.log(`[init] splat loaded: ${cfg.splat}, numSplats=${splatMesh.numSplats}`);
   splatMesh.scale.setScalar(SPLAT_SCALE);
+  applySplatPointScale(splatMesh, SPLAT_POINT_SCALE);
 
   // 加载所有 GLB → 放入独立 glbScene（不能加入含 SparkRenderer 的 scene）
   if (cfg.glbs?.length) {
@@ -828,6 +858,7 @@ async function switchScene(idx) {
 
     console.log(`[switch→${idx}] splat loaded: ${cfg.splat}, numSplats=${splatMesh.numSplats}`);
     splatMesh.scale.setScalar(SPLAT_SCALE);
+    applySplatPointScale(splatMesh, SPLAT_POINT_SCALE);
 
     // splat 就绪：通知动画循环可以切换入场，但不在此直接恢复渲染。
     // loaded=true 由 frame() 在 canvas 完全不可见时设置，避免新内容在渐隐过程中闪现。
@@ -1376,8 +1407,8 @@ sceneBtns.forEach((btn, i) => {
 
 // ── Photo card overlay ──
 const CARD_IMAGES = [
-  './files/card-scene1.webp',
-  './files/card-scene2.webp',
+  `./files/card-scene1-user${ACTIVE_USER}.webp`,
+  `./files/card-scene2-user${ACTIVE_USER}.webp`,
 ];
 // blob URL 缓存（preloadAllAssets 完成后写入，避免展示时重复请求）
 const CARD_IMAGE_BLOBS = [];

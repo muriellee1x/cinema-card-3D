@@ -1,5 +1,22 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* ── Layout distance variables ── */
+/* ── 默认（小屏 ≤ 667px，iPhone SE / 8） ── */
+:root {
+  --title-top:            6vh;
+  --scene-buttons-bottom:  6vh;
+  --card-offset-top:      -3vh;
+}
+
+/* ── 大屏（≥ 844px，iPhone 12 Pro / 13 / 14 及以上） ── */
+@media (min-height: 844px) {
+  :root {
+    --title-top:            12.5vh;
+    --scene-buttons-bottom: 10vh;
+    --card-offset-top:      -2.5vh;
+  }
+}
+
 html, body {
   width: 100%; height: 100%;
   overflow: hidden;
@@ -14,7 +31,7 @@ html, body {
 .scene-bg {
   position: fixed;
   inset: 0;
-  background-size: 100% auto;
+  background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
   z-index: 0;
@@ -30,7 +47,6 @@ html, body {
   justify-content: center;
   /* Perspective so children 3D transforms have depth */
   perspective: 900px;
-  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 2;
 }
@@ -44,8 +60,8 @@ html, body {
   will-change: transform;
   transform: rotateX(0deg) rotateY(0deg);
   --card-w: min(100vw, calc(86vh * 3 / 4));
-  margin-top: -2vh;
   flex-shrink: 0;
+  margin-top: var(--card-offset-top);
 }
 
 /* ── Layer 0: Gaussian Splat canvas; transition used for fade-in after load ── */
@@ -106,7 +122,7 @@ html, body {
 /* ── Scene selector buttons ── */
 #scene-buttons {
   position: fixed;
-  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--scene-buttons-bottom) + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -165,7 +181,7 @@ html, body {
 }
 
 .scene-btn.active .btn-label {
-  color: rgba(255, 202, 95, 1);
+  color: rgba(255, 247, 165, 1);
 }
 
 /* ── Loading screen ── */
@@ -205,6 +221,36 @@ html, body {
 }
 
 /* ── Gyroscope button ── */
+/* ── Back button ── */
+#back-btn {
+  position: fixed;
+  top: calc(20px + env(safe-area-inset-top, 0px));
+  left: 20px;
+  width: 44px; height: 44px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  padding: 0;
+  outline: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#back-btn:active { background: rgba(255,255,255,0.18); }
+#back-btn svg  { width: 20px; height: 20px; }
+#back-btn path { fill: rgba(255,255,255,0.7); }
+
+body.scene-fullscreen #back-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Gyro button ── */
 #gyro-btn {
   position: fixed;
   bottom: calc(28px + env(safe-area-inset-bottom, 0px));
@@ -236,7 +282,7 @@ html, body {
 /* ── Title ── */
 #title {
   position: fixed;
-  bottom: 77.5vh;
+  top: calc(var(--title-top) + env(safe-area-inset-top, 0px));
   left: 50%;
   transform: translateX(-50%);
   width: 60vw;
@@ -247,23 +293,12 @@ html, body {
   transition: opacity 0.35s ease;
 }
 
-/* Tablet & Desktop */
-@media (min-width: 768px) {
-  #title {
-    bottom: 45vh;
-  }
-}
-
 /* ── Scene buttons transition ── */
 #scene-buttons {
   transition: opacity 0.35s ease;
 }
 
 /* ── Fullscreen mode ── */
-body.scene-fullscreen #app {
-  padding-bottom: 0;
-}
-
 body.scene-fullscreen #card-wrapper {
   position: absolute;
   inset: 0;
